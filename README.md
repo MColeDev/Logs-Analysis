@@ -15,7 +15,8 @@ Python3
 **Download or clone from github fullstack-nandegree-vm repository**
 [fullstack-nandegree-vm repository](https://github.com/udacity/fullstack-nanodegree-vm)
 
-**Navigate to vagrant directory**
+**Download SQL Data and add to Vagrant directory**
+[Download Data](https://d17h27t6h515a5.cloudfront.net/topher/2016/August/57b5f748_newsdata/newsdata.zip)
 
 **Launch Vagrant using:**
 `vagrant up`
