@@ -1,81 +1,75 @@
+#!/usr/bin/python3
 import psycopg2
 
 DBNAME = "news"
 
-query_1 = (
-    "select articles.title, count(*) as num "
-    "from articles inner join log  "
-    "on log.path like concat('%', articles.slug, '%') "
-    "group by articles.title, log.path "
-    "order by num desc limit 3"
-    )
+query_1 = ("""
+    SELECT articles.title, count(*) AS num
+    FROM articles INNER JOIN log
+    ON log.path = concat('/article/' , articles.slug)
+    GROUP BY articles.title, log.path
+    ORDER BY num DESC
+    LIMIT 3
+    """)
 
-query_2 = (
-    "select authors.name, count(*) as num "
-    "from articles inner join authors "
-    "on articles.author = authors.id inner join log "
-    "on log.path like concat('%', articles.slug, '%') "
-    "group by authors.name "
-    "order by num desc"
-    )
+query_2 = ("""
+    SELECT authors.name, count(*) AS num
+    FROM articles INNER JOIN authors
+    ON articles.author = authors.id INNER JOIN log
+    ON log.path = concat('/article/' , articles.slug)
+    GROUP BY authors.name
+    ORDER BY num DESC
+    """)
 
 # query uses SQL View error_rate
-query_3 = (
-    "select * from error_rate "
-    "where error_rate.percentage > 1 "
-    "order by error_rate.percentage desc; "
-    )
+query_3 = ("""
+    SELECT * FROM error_rate
+    WHERE error_rate.percentage > 1
+    ORDER BY error_rate.percentage desc;
+    """)
 
 
-def top_articles():
+def execute_query(query):
+    """Connect to Database and return results of query"""
 
-    conn = psycopg2.connect(database=DBNAME)
-    cursor = conn.cursor()
-    cursor.execute(query_1)
-    results = cursor.fetchall()
+    try:
+        conn = psycopg2.connect(database=DBNAME)
+        cursor = conn.cursor()
+        cursor.execute(query)
+        results = cursor.fetchall()
+        conn.close()
+        return results
+    except (Exception, psycopg2.DatabaseError) as error:
+        print(error)
+
+
+def main():
+    """Print results of query request"""
+
+    results = execute_query(query_1)
 
     print('Top Three Articles')
 
-    for i in results:
-        print('"' + i[0] + '" — ' + str(i[1]) + ' views')
+    for author, views in results:
+        print('"{}" -- {} views'.format(author, views))
     # insert space for visual clarity
     print('')
 
-    conn.close()
+    results = execute_query(query_2)
 
+    print('Top Authors By Article View')
 
-def top_authors():
-
-    conn = psycopg2.connect(database=DBNAME)
-    cursor = conn.cursor()
-    cursor.execute(query_2)
-    results = cursor.fetchall()
-
-    print('Top Three Authors')
-
-    for i in results:
-        print(i[0] + ' — ' + str(i[1]) + ' views')
+    for title, views in results:
+        print('{} -- {} views'.format(title, views))
+    # insert space for visual clarity
     print('')
 
-    conn.close()
-
-
-def top_error_days():
-
-    conn = psycopg2.connect(database=DBNAME)
-    cursor = conn.cursor()
-    cursor.execute(query_3)
-    results = cursor.fetchall()
+    results = execute_query(query_3)
 
     print('Days With High Errors')
 
     for i in results:
-        print(i[0].strftime('%B %d, %Y') + " - " +
-              str(round((i[1]), 1)) + "%" + " errors")
-    print('')
+        print('{0:%B %d, %Y} -- {1:.1f}% errors'.format(i[0], i[1]))
 
-    conn.close()
-
-top_articles()
-top_authors()
-top_error_days()
+if __name__ == '__main__':
+    main()
